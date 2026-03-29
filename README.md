@@ -40,56 +40,71 @@ A policy-grounded, citation-backed, multi-agent system for resolving e-commerce 
 ## Quick Start
 
 
+
+Prerequisites: Python 3.11+, Ollama (for local inference) or a Groq API key (free at console.groq.com)
+
 Clone the repository and navigate into the project directory:
 
-```bash
 git clone https://github.com/ghostreindeer09/ecom-support-resolution-agent.git
 cd ecom-support-resolution-agent
-```
 
 Install the required dependencies:
 
-```bash
 pip install -r requirements.txt
-```
 
-Set up environment variables by copying the example file and adding your API key:
+Set up environment variables by copying the example file:
 
-```bash
 cp .env.example .env
-```
 
-Then edit `.env` and add:
+Then edit .env and add your credentials. Choose one inference provider:
 
-```env
-OPENAI_API_KEY=your_api_key_here
-```
+# Option A — Groq (recommended, free, fast)
+GROQ_API_KEY=your_groq_api_key_here
+LLM_PROVIDER=groq
+LLM_MODEL=llama-3.3-70b-versatile
 
-Build the retrieval index (BM25 + FAISS) from policy documents:
+# Option B — Local Ollama (no API key needed)
+LLM_PROVIDER=ollama
+LLM_MODEL=llama3.1:8b
 
-```bash
+If using Ollama, pull the model first:
+
+ollama pull llama3.1:8b
+ollama serve # run in a separate terminal
+
+Build the retrieval index (BM25 + FAISS) from the policy documents in policies/:
+
 python main.py --build-index
-```
+# Expected output: "Index saved — 206 chunks indexed"
 
-Run the system on a single test ticket:
+Verify everything is working with a single test ticket:
 
-```bash
 python main.py --test-ticket 1
-```
+# Expected: Decision: approve (damaged item claim)
+# Groq: ~45s · Ollama 8B: ~3–4 min
 
-Run the full evaluation on all 25 test tickets:
+Run the full 25-ticket evaluation suite:
 
-```bash
-python main.py --evaluate
-```
+python main.py --evaluate 2>&1 | tee evaluation.log
+# Results saved to evaluation/results/ (traces, metrics, report)
+# Note: Groq free tier has a 100k daily token limit — if hit, resume with:
+python main.py --evaluate-tickets 18 19 20 21 22 23 24 25
 
-Run example traces to inspect agent workflows (tickets 9, 15, 18):
+Run the 3 required example traces (exception, conflict, abstention):
 
-```bash
 python main.py --examples
-```
+# Runs tickets 9 (perishable exception), 15 (policy conflict), 18 (not-in-policy)
 
-Tip:  Rebuild the index whenever policy documents change, and use example traces to debug agent reasoning and improve performance.
+Launch the Gradio frontend for interactive testing:
+
+python frontend.py
+# Opens at http://localhost:7860
+
+Tip: Rebuild the index with --build-index whenever you add or modify policy documents in policies/. Use --examples to inspect agent reasoning and debug prompt behaviour before running the full evaluation.
+
+
+
+
 
 
 ## Evaluation Test Set (25 Tickets)
