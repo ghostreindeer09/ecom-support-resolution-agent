@@ -1,0 +1,36 @@
+# Environments
+.env
+.env.*
+!.env.example
+
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Logs
+*.log
+*.pid
+evaluation.pid
+full_evaluation.pid
+frontend.pid
+rerun.log
+
+# Build / Dependencies
+venv/
+env/
+.venv/
+.pytest_cache/
+
+# Data
+data/
+evaluation/results/
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db

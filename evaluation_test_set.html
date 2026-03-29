@@ -1,0 +1,183 @@
+
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: var(--font-sans); color: var(--color-text-primary); }
+.wrap { padding: 16px 0; }
+.filter-row { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 16px; }
+.pill { padding: 4px 12px; border-radius: 20px; font-size: 12px; font-weight: 500; cursor: pointer; border: 1px solid transparent; background: var(--color-background-secondary); color: var(--color-text-secondary); transition: all .15s; }
+.pill.active, .pill:hover { background: var(--color-background-tertiary); color: var(--color-text-primary); border-color: var(--color-border-primary); }
+.pill.active { font-weight: 500; }
+.stats { display: flex; gap: 16px; margin-bottom: 16px; flex-wrap: wrap; }
+.stat { font-size: 12px; color: var(--color-text-secondary); }
+.stat b { color: var(--color-text-primary); font-weight: 500; }
+table { width: 100%; border-collapse: collapse; font-size: 13px; }
+th { text-align: left; padding: 8px 10px; font-weight: 500; font-size: 12px; color: var(--color-text-secondary); border-bottom: 1px solid var(--color-border-tertiary); position: sticky; top: 0; background: var(--color-background-primary); }
+td { padding: 8px 10px; vertical-align: top; border-bottom: 1px solid var(--color-border-tertiary); line-height: 1.5; }
+tr:hover td { background: var(--color-background-secondary); }
+.badge { display: inline-block; padding: 2px 8px; border-radius: 12px; font-size: 11px; font-weight: 500; white-space: nowrap; }
+.b-std  { background: #E6F1FB; color: #0C447C; }
+.b-exc  { background: #FAEEDA; color: #633806; }
+.b-con  { background: #FAECE7; color: #712B13; }
+.b-nip  { background: #FCEBEB; color: #791F1F; }
+.exp-standard   { background: #E6F1FB; color: #0C447C; }
+.exp-exception  { background: #FAEEDA; color: #633806; }
+.exp-escalate   { background: #FAECE7; color: #712B13; }
+.exp-abstain    { background: #FCEBEB; color: #791F1F; }
+.exp-approve    { background: #EAF3DE; color: #27500A; }
+.exp-deny       { background: #FCEBEB; color: #791F1F; }
+.exp-partial    { background: #FAEEDA; color: #633806; }
+.exp-clarify    { background: #EEEDFE; color: #3C3489; }
+.tick-col { color: var(--color-text-secondary); font-size: 11px; }
+.expand-btn { background: none; border: none; color: var(--color-text-secondary); cursor: pointer; font-size: 11px; padding: 2px 4px; border-radius: 4px; }
+.expand-btn:hover { background: var(--color-background-tertiary); color: var(--color-text-primary); }
+.detail { display: none; background: var(--color-background-secondary); border-radius: 6px; padding: 8px 10px; margin-top: 6px; font-size: 12px; color: var(--color-text-secondary); line-height: 1.6; }
+.detail.open { display: block; }
+.detail b { color: var(--color-text-primary); font-weight: 500; }
+.export-btn { padding: 6px 14px; border-radius: 6px; border: 1px solid var(--color-border-primary); background: var(--color-background-secondary); color: var(--color-text-primary); font-size: 12px; cursor: pointer; }
+.export-btn:hover { background: var(--color-background-tertiary); }
+</style>
+
+<div class="wrap">
+<div class="filter-row" id="filters"></div>
+<div class="stats" id="stats"></div>
+<div style="overflow-x:auto">
+<table>
+  <thead>
+    <tr>
+      <th>#</th>
+      <th>Category</th>
+      <th>Ticket summary</th>
+      <th>Issue type</th>
+      <th>Expected decision</th>
+      <th>Key challenge</th>
+      <th></th>
+    </tr>
+  </thead>
+  <tbody id="tbody"></tbody>
+</table>
+</div>
+<div style="margin-top:12px;display:flex;justify-content:flex-end">
+  <button class="export-btn" onclick="exportCSV()">Export as CSV</button>
+</div>
+</div>
+
+<script>
+const tickets = [
+  // STANDARD (8)
+  { id:1, cat:"standard", type:"Refund", summary:"Item arrived damaged, customer wants refund", order:{item_category:"electronics",order_status:"delivered",fulfillment_type:"first-party",shipping_region:"US",delivery_date:"on-time"}, expected:"approve", challenge:"Straightforward damaged-item claim", detail:"Customer receives a damaged laptop. First-party, US, delivered on time. Policy should clearly cover this with standard refund window. Citation: returns & refunds doc §2." },
+  { id:2, cat:"standard", type:"Shipping", summary:"Package not delivered, tracking shows in transit for 10 days", order:{item_category:"apparel",order_status:"shipped",fulfillment_type:"first-party",shipping_region:"US",delivery_date:"unknown"}, expected:"approve", challenge:"Lost package — standard SLA", detail:"Tracking stalled. First-party order. Policy likely defines a lost-package threshold (e.g. 7-10 days). Agent must cite that threshold exactly." },
+  { id:3, cat:"standard", type:"Cancellation", summary:"Customer wants to cancel order placed 20 mins ago", order:{item_category:"apparel",order_status:"placed",fulfillment_type:"first-party",shipping_region:"US",delivery_date:null}, expected:"approve", challenge:"Pre-fulfillment cancellation window", detail:"Order not yet shipped. Policy should allow cancellation if not yet in fulfillment. Agent must check order_status=placed." },
+  { id:4, cat:"standard", type:"Promo", summary:"Coupon code didn't apply at checkout, wants discount retroactively", order:{item_category:"electronics",order_status:"placed",fulfillment_type:"first-party",shipping_region:"US",delivery_date:null}, expected:"deny", challenge:"Retroactive coupon application", detail:"Policy likely prohibits retroactive coupon application after order is placed. Agent must cite promo terms." },
+  { id:5, cat:"standard", type:"Refund", summary:"Wrong item received, wants replacement not refund", order:{item_category:"apparel",order_status:"delivered",fulfillment_type:"first-party",shipping_region:"US",delivery_date:"on-time"}, expected:"approve", challenge:"Wrong item → replacement (not refund)", detail:"Agent must understand distinction: replacement path vs refund path. Cite returns & refunds §incorrect item." },
+  { id:6, cat:"standard", type:"Shipping", summary:"Customer wants to change delivery address after order placed", order:{item_category:"electronics",order_status:"shipped",fulfillment_type:"first-party",shipping_region:"US",delivery_date:null}, expected:"deny", challenge:"Address change after shipment", detail:"Item already shipped. Policy likely cannot redirect in-transit packages. Agent must abstain or deny citing operational limits." },
+  { id:7, cat:"standard", type:"Refund", summary:"Item not as described, color different from photos", order:{item_category:"apparel",order_status:"delivered",fulfillment_type:"marketplace",shipping_region:"US",delivery_date:"on-time"}, expected:"partial", challenge:"Marketplace seller — different policy applies", detail:"Seller-fulfilled order. Marketplace seller policy may differ from first-party. Agent must retrieve both policy sets and flag the distinction." },
+  { id:8, cat:"standard", type:"Payment", summary:"Double charged for same order, wants one refund", order:{item_category:"electronics",order_status:"delivered",fulfillment_type:"first-party",shipping_region:"US",delivery_date:"on-time"}, expected:"approve", challenge:"Payment dispute — billing error", detail:"Clear billing error. Cite payments/disputes section. Agent should note refund timeline per policy." },
+
+  // EXCEPTION-HEAVY (6)
+  { id:9, cat:"exception", type:"Refund", summary:"Perishable food arrived melted, customer wants refund AND to keep item", order:{item_category:"perishable",order_status:"delivered",fulfillment_type:"first-party",shipping_region:"US",delivery_date:"2-days-late"}, expected:"partial", challenge:"Perishable exception + keep-item request", detail:"Classic exception: perishables may have no-return policy but damage clause. 'Keep the item' request may or may not be covered. Agent must cite perishable exception section explicitly and NOT approve the keep-item portion without policy backing." },
+  { id:10, cat:"exception", type:"Refund", summary:"Opened hygiene product (electric toothbrush), claiming it's defective", order:{item_category:"hygiene",order_status:"delivered",fulfillment_type:"first-party",shipping_region:"US",delivery_date:"on-time"}, expected:"deny", challenge:"Hygiene items — final sale exception", detail:"Policy almost certainly marks opened hygiene items as non-returnable. Agent must cite this exception and not approve. May need to escalate if defect claim is strong." },
+  { id:11, cat:"exception", type:"Refund", summary:"Final sale item, customer changed mind after 5 days", order:{item_category:"apparel",order_status:"delivered",fulfillment_type:"first-party",shipping_region:"US",delivery_date:"on-time"}, expected:"deny", challenge:"Final sale — no returns permitted", detail:"Item was marked final sale. Policy must be cited explicitly. Agent cannot approve. Must use safe-abstain if policy wording is ambiguous." },
+  { id:12, cat:"exception", type:"Refund", summary:"Customer returning opened software with broken seal claiming it never worked", order:{item_category:"electronics",order_status:"delivered",fulfillment_type:"first-party",shipping_region:"US",delivery_date:"on-time"}, expected:"escalate", challenge:"Opened software + defect claim conflict", detail:"Opened software = non-returnable in most policies, BUT defect claim may override. Conflict between opened-items exception and defective-goods clause. Must escalate." },
+  { id:13, cat:"exception", type:"Shipping", summary:"Customer in EU wants to return apparel after 45 days citing EU consumer law", order:{item_category:"apparel",order_status:"delivered",fulfillment_type:"first-party",shipping_region:"EU",delivery_date:"on-time"}, expected:"escalate", challenge:"Regional law vs store policy conflict", detail:"EU consumer law provides 14-day cooling off period minimum, but customer is at 45 days. Store policy may be stricter. Regional law may override store policy. Must escalate — agent cannot resolve this without legal guidance." },
+  { id:14, cat:"exception", type:"Promo", summary:"Customer claims they received a 'VIP offer' email but promo code doesn't work", order:{item_category:"apparel",order_status:"placed",fulfillment_type:"first-party",shipping_region:"US",delivery_date:null}, expected:"clarify", challenge:"Unverifiable promotional claim", detail:"Agent cannot verify the email offer exists. Must ask for clarifying info (screenshot, code value) before proceeding. Do not approve or deny without verification." },
+
+  // CONFLICT (3)
+  { id:15, cat:"conflict", type:"Refund", summary:"Marketplace seller refuses return, but platform first-party policy says 30-day free returns", order:{item_category:"apparel",order_status:"delivered",fulfillment_type:"marketplace",shipping_region:"US",delivery_date:"on-time"}, expected:"escalate", challenge:"Seller policy vs platform policy conflict", detail:"Direct contradiction: marketplace seller has 'no returns' policy, platform's own guarantee may cover the customer anyway. Agent must surface BOTH policies, note the conflict, and escalate. Must not take sides without supervisor." },
+  { id:16, cat:"conflict", type:"Refund", summary:"Customer in California citing California-specific refund law for a final-sale item", order:{item_category:"electronics",order_status:"delivered",fulfillment_type:"first-party",shipping_region:"US-CA",delivery_date:"on-time"}, expected:"escalate", challenge:"State law vs final-sale policy", detail:"California has strict consumer protection laws that may supersede store final-sale policy. Agent must flag this, cite both the store policy and the regional conflict, and escalate. Cannot deny without legal review." },
+  { id:17, cat:"conflict", type:"Shipping", summary:"Customer's order shows delivered but claims never received; tracking says signed for (not by them)", order:{item_category:"electronics",order_status:"delivered",fulfillment_type:"first-party",shipping_region:"US",delivery_date:"on-time"}, expected:"escalate", challenge:"Carrier record vs customer claim conflict", detail:"Carrier says delivered + signed. Customer denies. Policy may have a 'carrier confirmation = delivered' clause vs. a fraud/theft clause. Both apply. Must escalate; potential fraud flag for Fraud Redactor agent." },
+
+  // NOT IN POLICY (3)
+  { id:18, cat:"not-in-policy", type:"Other", summary:"Customer asks what the store's policy is on price-matching with a competitor", order:{item_category:"electronics",order_status:"placed",fulfillment_type:"first-party",shipping_region:"US",delivery_date:null}, expected:"abstain", challenge:"Price matching — may not exist in policy", detail:"If no price-match policy exists in the corpus, agent must abstain: 'I don't have that information in the provided policy documents.' Suggest checking the website or contacting support directly." },
+  { id:19, cat:"not-in-policy", type:"Other", summary:"Customer wants to exchange a gift card for cash", order:{item_category:"gift-card",order_status:"delivered",fulfillment_type:"first-party",shipping_region:"US",delivery_date:null}, expected:"abstain", challenge:"Gift card cash redemption — likely not in policy", detail:"Gift card cash-out is a common 'not in policy' case. Agent must not guess. If absent from corpus, must abstain and direct to advisor/store policy page." },
+  { id:20, cat:"not-in-policy", type:"Promo", summary:"Customer asks if a sale event is happening next month", order:{item_category:"apparel",order_status:null,fulfillment_type:null,shipping_region:"US",delivery_date:null}, expected:"abstain", challenge:"Future sale availability — outside policy scope", detail:"Future promotional schedules are not documented in static policy. Agent must abstain and direct to marketing or the public website. No guessing." },
+
+  // BONUS (5 — go beyond minimum)
+  { id:21, cat:"standard", type:"Refund", summary:"Customer disputes charge after 90 days, beyond standard refund window", order:{item_category:"apparel",order_status:"delivered",fulfillment_type:"first-party",shipping_region:"US",delivery_date:"on-time"}, expected:"deny", challenge:"Expired refund window — clear denial with citation", detail:"Refund window has passed. Policy citation must include the specific window (e.g. 30 days). Agent denies and cites policy. Clean baseline case." },
+  { id:22, cat:"exception", type:"Refund", summary:"Item broke after 3 uses, manufacturer warranty may apply", order:{item_category:"electronics",order_status:"delivered",fulfillment_type:"first-party",shipping_region:"US",delivery_date:"on-time"}, expected:"partial", challenge:"Store vs manufacturer warranty boundary", detail:"Store policy may have expired but manufacturer warranty is separate. Agent must distinguish between store return policy and warranty escalation path. Partial: cannot approve store refund but must guide to manufacturer claim." },
+  { id:23, cat:"conflict", type:"Payment", summary:"Customer was charged a restocking fee they claim was never disclosed at checkout", order:{item_category:"electronics",order_status:"returned",fulfillment_type:"first-party",shipping_region:"US",delivery_date:"on-time"}, expected:"escalate", challenge:"Undisclosed fee conflict — potential policy violation", detail:"If restocking fee was not disclosed at checkout, this may violate consumer protection law. Agent must flag this as a conflict and escalate. Must not deny the refund of the fee without review." },
+  { id:24, cat:"not-in-policy", type:"Other", summary:"Customer asks to speak to a specific customer service manager by name", order:{item_category:null,order_status:null,fulfillment_type:null,shipping_region:"US",delivery_date:null}, expected:"abstain", challenge:"Personnel routing — entirely outside policy", detail:"Policy corpus does not contain information about individual staff or routing to specific managers. Agent must abstain and provide standard escalation path." },
+  { id:25, cat:"standard", type:"Refund", summary:"Subscription box delivered wrong items 3 months in a row, wants full refund for all 3", order:{item_category:"subscription",order_status:"delivered",fulfillment_type:"first-party",shipping_region:"US",delivery_date:"on-time"}, expected:"escalate", challenge:"Repeated incorrect fulfillment — escalation needed", detail:"Three consecutive wrong deliveries exceeds a single-ticket resolution scope. Agent should approve at least 1 refund per policy, escalate the pattern to account management. Citation needed for multi-order dispute section." },
+];
+
+const catMeta = {
+  "standard":       { label:"Standard",       cls:"b-std" },
+  "exception":      { label:"Exception-heavy", cls:"b-exc" },
+  "conflict":       { label:"Conflict",        cls:"b-con" },
+  "not-in-policy":  { label:"Not in policy",   cls:"b-nip" },
+};
+const expMeta = {
+  "approve":   { label:"Approve",   cls:"exp-approve" },
+  "deny":      { label:"Deny",      cls:"exp-deny" },
+  "partial":   { label:"Partial",   cls:"exp-partial" },
+  "escalate":  { label:"Escalate",  cls:"exp-escalate" },
+  "abstain":   { label:"Abstain",   cls:"exp-abstain" },
+  "clarify":   { label:"Clarify",   cls:"exp-clarify" },
+};
+
+let active = "all";
+
+function render(filter) {
+  const data = filter === "all" ? tickets : tickets.filter(t => t.cat === filter);
+  const tbody = document.getElementById("tbody");
+  tbody.innerHTML = "";
+  data.forEach(t => {
+    const cm = catMeta[t.cat];
+    const em = expMeta[t.expected];
+    const tr = document.createElement("tr");
+    tr.innerHTML = `
+      <td class="tick-col">${t.id}</td>
+      <td><span class="badge ${cm.cls}">${cm.label}</span></td>
+      <td><div>${t.summary}</div><div class="detail" id="d${t.id}"><b>Order context:</b> ${Object.entries(t.order).filter(([,v])=>v).map(([k,v])=>`${k}: ${v}`).join(' · ')}<br><br><b>Rubric note:</b> ${t.detail}</div></td>
+      <td><span style="font-size:12px;color:var(--color-text-secondary)">${t.type}</span></td>
+      <td><span class="badge ${em.cls}">${em.label}</span></td>
+      <td style="font-size:12px;color:var(--color-text-secondary);max-width:180px">${t.challenge}</td>
+      <td><button class="expand-btn" onclick="toggle(${t.id},this)">▸ details</button></td>
+    `;
+    tbody.appendChild(tr);
+  });
+  updateStats(data);
+}
+
+function toggle(id, btn) {
+  const d = document.getElementById("d"+id);
+  d.classList.toggle("open");
+  btn.textContent = d.classList.contains("open") ? "▾ details" : "▸ details";
+}
+
+function updateStats(data) {
+  const counts = {};
+  data.forEach(t => { counts[t.expected] = (counts[t.expected]||0)+1; });
+  document.getElementById("stats").innerHTML = Object.entries(counts).map(([k,v]) =>
+    `<div class="stat"><b>${v}</b> ${expMeta[k]?.label||k}</div>`
+  ).join("") + `<div class="stat"><b>${data.length}</b> total shown</div>`;
+}
+
+function setupFilters() {
+  const row = document.getElementById("filters");
+  [["all","All (25)"],["standard","Standard (8)"],["exception","Exception-heavy (6)"],["conflict","Conflict (3)"],["not-in-policy","Not in policy (3)"]].forEach(([val,label]) => {
+    const btn = document.createElement("button");
+    btn.className = "pill" + (val==="all"?" active":"");
+    btn.textContent = label;
+    btn.onclick = () => {
+      document.querySelectorAll(".pill").forEach(p=>p.classList.remove("active"));
+      btn.classList.add("active");
+      active = val;
+      render(val);
+    };
+    row.appendChild(btn);
+  });
+}
+
+function exportCSV() {
+  const rows = [["#","Category","Ticket Summary","Issue Type","Expected Decision","Key Challenge"]];
+  tickets.forEach(t => rows.push([t.id, catMeta[t.cat].label, `"${t.summary}"`, t.type, expMeta[t.expected].label, `"${t.challenge}"`]));
+  const csv = rows.map(r=>r.join(",")).join("\n");
+  const a = document.createElement("a");
+  a.href = "data:text/csv;charset=utf-8,"+encodeURIComponent(csv);
+  a.download = "evaluation_test_set.csv";
+  a.click();
+}
+
+setupFilters();
+render("all");
+</script>
