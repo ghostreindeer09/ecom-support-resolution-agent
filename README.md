@@ -5,11 +5,31 @@ A policy-grounded, citation-backed, multi-agent system for resolving e-commerce 
 ## Architecture
 
 ```
-Ticket Input → Triage Agent → Order Context Interpreter → Policy Retriever
-                                                             ↓
-                   Escalation ← Compliance/Safety ← Resolution Writer
-                       ↓              ↓ (rewrite loop, max 2)
-                   Human Handoff    Final Output
+@startuml
+start
+
+:Ticket Input;
+: Triage Agent;
+: Order Context Interpreter;
+: Policy Retriever;
+
+: Resolution Writer;
+: Compliance/Safety;
+
+if (Needs rewrite?) then (yes)
+  : Resolution Writer;
+  : Compliance/Safety;
+endif
+
+if (Escalation required?) then (yes)
+  : Escalation;
+  : Human Handoff;
+else (no)
+  : Final Output;
+endif
+
+stop
+@enduml
 ```
 
 ### 6 Agents
