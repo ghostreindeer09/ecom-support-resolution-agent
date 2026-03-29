@@ -39,26 +39,58 @@ A policy-grounded, citation-backed, multi-agent system for resolving e-commerce 
 
 ## Quick Start
 
+
+Clone the repository and navigate into the project directory:
+
 ```bash
-# 1. Install dependencies
+git clone https://github.com/ghostreindeer09/ecom-support-resolution-agent.git
+cd ecom-support-resolution-agent
+```
+
+Install the required dependencies:
+
+```bash
 pip install -r requirements.txt
+```
 
-# 2. Configure API key
+Set up environment variables by copying the example file and adding your API key:
+
+```bash
 cp .env.example .env
-# Edit .env and add your OPENAI_API_KEY
+```
 
-# 3. Build the vector store index
+Then edit `.env` and add:
+
+```env
+OPENAI_API_KEY=your_api_key_here
+```
+
+Build the retrieval index (BM25 + FAISS) from policy documents:
+
+```bash
 python main.py --build-index
+```
 
-# 4. Run a single test ticket
+Run the system on a single test ticket:
+
+```bash
 python main.py --test-ticket 1
+```
 
-# 5. Run the full 25-ticket evaluation
+Run the full evaluation on all 25 test tickets:
+
+```bash
 python main.py --evaluate
+```
 
-# 6. Run the 3 example traces (tickets 9, 15, 18)
+Run example traces to inspect agent workflows (tickets 9, 15, 18):
+
+```bash
 python main.py --examples
 ```
+
+Tip:  Rebuild the index whenever policy documents change, and use example traces to debug agent reasoning and improve performance.
+
 
 ## Evaluation Test Set (25 Tickets)
 
