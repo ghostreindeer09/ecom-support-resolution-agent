@@ -37,9 +37,7 @@ A policy-grounded, citation-backed, multi-agent system for resolving e-commerce 
 - **28 documents**, **25,353+ words**
 - Covers: returns & refunds, shipping, cancellations, promotions, payments, disputes, fraud, perishables, hygiene, marketplace, regional compliance, gift cards, warranties, final sale, damaged items, communication standards, escalation procedures, carrier logistics, account management, digital products, and more
 
-## Quick Start
 
-Here’s the enhanced version:
 
 ---
 
