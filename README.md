@@ -89,30 +89,8 @@ python main.py --examples
 
 ## Project Structure
 
-```
-support_resolution/
-├── main.py                 # Entry point (CLI)
-├── config.py               # Configuration constants
-├── chunker.py              # Policy document chunker
-├── retriever.py            # Hybrid BM25 + FAISS retriever
-├── orchestrator.py         # 6-agent pipeline orchestrator
-├── requirements.txt
-├── .env.example
-├── agents/
-│   ├── __init__.py
-│   ├── core.py             # All 6 agent classes
-│   └── prompts.py          # System prompts
-├── evaluation/
-│   ├── __init__.py
-│   ├── test_set.py         # 25 test tickets
-│   └── runner.py           # Evaluation runner + metrics
-├── policies/               # 28 policy documents (25K+ words)
-│   ├── 01_returns_and_refunds.md
-│   ├── 02_shipping_and_delivery.md
-│   └── ... (28 total)
-└── data/
-    └── vectorstore/        # Built index (FAISS + BM25 + chunks)
-```
+<img width="1187" height="308" alt="Screenshot 2026-03-29 at 19 20 43" src="https://github.com/user-attachments/assets/8df69c2d-14ab-488c-b049-fdd68a4978af" />
+
 
 ## Design Decisions
 
