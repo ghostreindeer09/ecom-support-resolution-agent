@@ -4,12 +4,13 @@ A policy-grounded, citation-backed, multi-agent system for resolving e-commerce 
 
 ## Architecture
 
-```
-<img width="1440" height="1822" alt="image" src="https://github.com/user-attachments/assets/1940e690-23a0-4dd0-9b92-621996054ec6" />
+![ecommerce_support_agent_architecture](https://github.com/user-attachments/assets/8b39b499-71a0-496f-b858-c7025a7a622a)
 
 
 
-```
+
+
+
 
 ### 6 Agents
 
